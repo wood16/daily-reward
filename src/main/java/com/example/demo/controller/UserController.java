@@ -6,8 +6,10 @@ import com.example.demo.service.UserService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
 
@@ -48,10 +50,12 @@ public class UserController {
         try {
 
             return ResponseEntity.ok(checkInHistoryService.subtractPoint(userId, point, locale));
+        } catch (ResponseStatusException exception) {
+
+            return ResponseEntity.status(exception.getStatusCode()).body(exception.getReason());
         } catch (Exception exception) {
 
-            return ResponseEntity.badRequest().body(exception.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exception.getMessage());
         }
-
     }
 }

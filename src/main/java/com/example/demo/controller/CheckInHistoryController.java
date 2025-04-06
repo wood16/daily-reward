@@ -7,8 +7,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,10 +31,14 @@ public class CheckInHistoryController {
         Locale locale = new Locale(language);
 
         try {
+
             return ResponseEntity.ok(checkInHistoryService.checkIn(userId, locale));
+        } catch (ResponseStatusException exception) {
+
+            return ResponseEntity.status(exception.getStatusCode()).body(exception.getReason());
         } catch (Exception exception) {
 
-            return ResponseEntity.badRequest().body(exception.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(exception.getMessage());
         }
     }
 

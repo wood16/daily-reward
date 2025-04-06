@@ -23,7 +23,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -77,10 +79,10 @@ public class CheckInHistoryService {
     }
 
     @Transactional(rollbackOn = Exception.class)
-    public String checkIn(Long userId, Locale locale) throws Exception {
+    public String checkIn(Long userId, Locale locale) throws ResponseStatusException, InterruptedException {
 
-        UserEntity user = userRepository.findById(userId).orElseThrow(() ->
-                new NoSuchElementException(messageSource.getMessage(LocalKey.USER_NOT_FOUND, null, locale)));
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, messageSource.getMessage(LocalKey.USER_NOT_FOUND, null, locale)));
 
         LocalDate today = LocalDate.now();
         LocalTime currentTime = LocalDateTime.now().toLocalTime();
@@ -88,20 +90,23 @@ public class CheckInHistoryService {
         boolean validTime = checkValidTime(currentTime);
 
         if (!validTime) {
-            throw new Exception(messageSource.getMessage(LocalKey.INVALID_CHECK_IN_TIME, null, locale));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    messageSource.getMessage(LocalKey.INVALID_CHECK_IN_TIME, null, locale));
         }
 
         RLock lock = redissonClient.getLock(CacheKeyEnum.CHECK_IN_LOCK.genKey(userId));
 
         try {
             if (!lock.tryLock(5, 10, TimeUnit.SECONDS)) {
-                throw new Exception(messageSource.getMessage(LocalKey.SYSTEM_PROCESS_CHECK_IN, null, locale));
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        messageSource.getMessage(LocalKey.SYSTEM_PROCESS_CHECK_IN, null, locale));
             }
 
             RBucket<Boolean> bucket = redissonClient.getBucket(CacheKeyEnum.CHECK_IN.genKeyDate(userId, today));
 
             if (Boolean.TRUE.equals(bucket.get())) {
-                throw new Exception(messageSource.getMessage(LocalKey.CHECK_IN_ALREADY, null, locale));
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        messageSource.getMessage(LocalKey.CHECK_IN_ALREADY, null, locale));
             }
 
             LocalDate firstDay = today.withDayOfMonth(1);
@@ -112,7 +117,8 @@ public class CheckInHistoryService {
             Map<Integer, Integer> rewardConfigMap = dailyRewardConfigService.findAllDailyRewardConfig();
 
             if (checkInHistories.size() >= rewardConfigMap.size()) {
-                throw new Exception(messageSource.getMessage(LocalKey.USER_EXCEEDED_CHECK_IN_MONTH, null, locale));
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        messageSource.getMessage(LocalKey.USER_EXCEEDED_CHECK_IN_MONTH, null, locale));
             }
 
             int rewardPoints = rewardConfigMap.getOrDefault(checkInHistories.size() + 1, 1);
@@ -156,8 +162,8 @@ public class CheckInHistoryService {
     @Transactional(rollbackOn = Exception.class)
     public String subtractPoint(Long userId, int point, Locale locale) {
 
-        UserEntity user = userRepository.findById(userId).orElseThrow(() ->
-                new NoSuchElementException(messageSource.getMessage(LocalKey.USER_NOT_FOUND, null, locale)));
+        UserEntity user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.NOT_FOUND, messageSource.getMessage(LocalKey.USER_NOT_FOUND, null, locale)));
 
         CheckInHistoryEntity subtract = CheckInHistoryEntity.builder()
                 .date(LocalDate.now())
@@ -168,7 +174,7 @@ public class CheckInHistoryService {
 
         checkInHistoryRepository.save(subtract);
 
-        user.setRewardPoints(user.getRewardPoints() - point);
+        user.setRewardPoints(Math.max(user.getRewardPoints() - point, 0));
         userRepository.save(user);
 
         RBucket<UserResponse> bucket = redissonClient.getBucket(CacheKeyEnum.USER.genKey(userId));
