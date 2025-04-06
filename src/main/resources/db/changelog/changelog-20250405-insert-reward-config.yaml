@@ -1,0 +1,75 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert_daily_reward_config
+      author: lamht
+      runOnChange: true
+      runAlways: false
+      preConditions:
+        onFail: MARK_RAN
+        sqlCheck:
+          expectedResult: 0
+          sql: SELECT COUNT(*) FROM daily_reward_config;
+      changes:
+        - insert:
+            tableName: daily_reward_config
+            columns:
+              - column:
+                  name: day_of_streak
+                  value: 1
+              - column:
+                  name: reward_points
+                  value: 1
+        - insert:
+            tableName: daily_reward_config
+            columns:
+              - column:
+                  name: day_of_streak
+                  value: 2
+              - column:
+                  name: reward_points
+                  value: 2
+        - insert:
+            tableName: daily_reward_config
+            columns:
+              - column:
+                  name: day_of_streak
+                  value: 3
+              - column:
+                  name: reward_points
+                  value: 3
+        - insert:
+            tableName: daily_reward_config
+            columns:
+              - column:
+                  name: day_of_streak
+                  value: 4
+              - column:
+                  name: reward_points
+                  value: 5
+        - insert:
+            tableName: daily_reward_config
+            columns:
+              - column:
+                  name: day_of_streak
+                  value: 5
+              - column:
+                  name: reward_points
+                  value: 8
+        - insert:
+            tableName: daily_reward_config
+            columns:
+              - column:
+                  name: day_of_streak
+                  value: 6
+              - column:
+                  name: reward_points
+                  value: 13
+        - insert:
+            tableName: daily_reward_config
+            columns:
+              - column:
+                  name: day_of_streak
+                  value: 7
+              - column:
+                  name: reward_points
+                  value: 21

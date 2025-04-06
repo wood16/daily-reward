@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/changelog-20250405-create-user-table.yaml
+  - include:
+      file: db/changelog/changelog-20250405-create-dailyrewardconfig-table.yaml
+  - include:
+      file: db/changelog/changelog-20250405-create-checkinhistory-table.yaml
+  - include:
+      file: db/changelog/changelog-20250405-add-index-date.yaml
+  - include:
+      file: db/changelog/changelog-20250405-insert-reward-config.yaml

@@ -1,0 +1,32 @@
+# changelog-20250405-create-users-table.yaml
+databaseChangeLog:
+  - changeSet:
+      id: create-users-table
+      author: lamht
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: users
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: username
+                  type: VARCHAR(255)
+              - column:
+                  name: avatar
+                  type: VARCHAR(255)
+              - column:
+                  name: display_name
+                  type: VARCHAR(255)
+              - column:
+                  name: reward_points
+                  type: INT

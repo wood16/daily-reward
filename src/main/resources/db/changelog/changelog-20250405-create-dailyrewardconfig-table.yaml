@@ -1,0 +1,26 @@
+# changelog-20250405-create-dailyrewardconfig-table.yaml
+databaseChangeLog:
+  - changeSet:
+      id: create-dailyrewardconfig-table
+      author: lamht
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: daily_reward_config
+      changes:
+        - createTable:
+            tableName: daily_reward_config
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: day_of_streak
+                  type: INT
+              - column:
+                  name: reward_points
+                  type: INT

@@ -1,0 +1,16 @@
+# changelog-20250405-add-index-date.yaml
+databaseChangeLog:
+  - changeSet:
+      id: add-index-on-checkin-date
+      author: lamht
+      changes:
+        - createIndex:
+            indexName: idx_checkin_date
+            tableName: checkin_history
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: date
+              - column:
+                  name: type

@@ -1,0 +1,32 @@
+# changelog-20250405-create-checkinhistory-table.yaml
+databaseChangeLog:
+  - changeSet:
+      id: create-checkinhistory-table
+      author: lamht
+      preConditions:
+        onFail: MARK_RAN
+        not:
+          tableExists:
+            tableName: checkin_history
+      changes:
+        - createTable:
+            tableName: checkin_history
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: date
+                  type: DATE
+              - column:
+                  name: reward_points
+                  type: INT
+              - column:
+                  name: type
+                  type: VARCHAR(255)
+              - column:
+                  name: user_id
+                  type: BIGINT
