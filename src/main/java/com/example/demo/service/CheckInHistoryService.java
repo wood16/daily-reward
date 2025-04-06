@@ -11,7 +11,6 @@ import com.example.demo.entity.UserEntity;
 import com.example.demo.mapper.CheckInHistoryMapper;
 import com.example.demo.repository.CheckInHistoryRepository;
 import com.example.demo.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -25,12 +24,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -78,7 +79,7 @@ public class CheckInHistoryService {
         return result;
     }
 
-    @Transactional(rollbackOn = Exception.class)
+    @Transactional(isolation = Isolation.SERIALIZABLE, rollbackFor = Exception.class)
     public String checkIn(Long userId, Locale locale) throws ResponseStatusException, InterruptedException {
 
         UserEntity user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(
@@ -104,7 +105,7 @@ public class CheckInHistoryService {
 
             RBucket<Boolean> bucket = redissonClient.getBucket(CacheKeyEnum.CHECK_IN.genKeyDate(userId, today));
 
-            if (Boolean.TRUE.equals(bucket.get())) {
+            if (checkHaveCheckInDay(bucket, today, userId)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         messageSource.getMessage(LocalKey.CHECK_IN_ALREADY, null, locale));
             }
@@ -136,7 +137,8 @@ public class CheckInHistoryService {
             userRepository.save(user);
             userService.updateCache(redissonClient.getBucket(CacheKeyEnum.USER.genKey(userId)), user);
 
-            bucket.set(true, Duration.ofDays(1));
+            bucket.set(true);
+            bucket.expire(LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
 
             return messageSource.getMessage(LocalKey.CHECK_IN_SUCCESS, new Object[]{rewardPoints}, locale);
         } finally {
@@ -159,7 +161,7 @@ public class CheckInHistoryService {
                 checkInHistoryEntities.getTotalElements());
     }
 
-    @Transactional(rollbackOn = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public String subtractPoint(Long userId, int point, Locale locale) {
 
         UserEntity user = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(
@@ -181,6 +183,12 @@ public class CheckInHistoryService {
         userService.updateCache(bucket, user);
 
         return messageSource.getMessage(LocalKey.SUBTRACT_POINT_SUCCESS, null, locale);
+    }
+
+    private boolean checkHaveCheckInDay(RBucket<Boolean> bucket, LocalDate date, Long userId) {
+
+        return Boolean.TRUE.equals(bucket.get()) ||
+                checkInHistoryRepository.findByUserIdAndDateAndType(userId, date, ScoreTypeEnum.ADD.getValue()).isPresent();
     }
 
     private boolean checkValidTime(LocalTime currentTime) {

@@ -7,7 +7,6 @@ import com.example.demo.dto.response.UserResponse;
 import com.example.demo.entity.UserEntity;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -17,6 +16,7 @@ import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.Locale;
@@ -32,7 +32,7 @@ public class UserService {
     RedissonClient redissonClient;
     MessageSource messageSource;
 
-    @Transactional(rollbackOn = Exception.class)
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<?> createUser(CreateUserRequest createUserRequest, Locale locale) {
 
         if (userRepository.existsByUsername(createUserRequest.getUsername())) {
