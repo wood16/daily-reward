@@ -91,16 +91,14 @@ public class CheckInHistoryService {
             throw new Exception(messageSource.getMessage(LocalKey.INVALID_CHECK_IN_TIME, null, locale));
         }
 
-        String lockKey = CacheKeyEnum.CHECK_IN_LOCK.genKey(userId);
-        RLock lock = redissonClient.getLock(lockKey);
+        RLock lock = redissonClient.getLock(CacheKeyEnum.CHECK_IN_LOCK.genKey(userId));
 
         try {
             if (!lock.tryLock(5, 10, TimeUnit.SECONDS)) {
                 throw new Exception(messageSource.getMessage(LocalKey.SYSTEM_PROCESS_CHECK_IN, null, locale));
             }
 
-            String checkInKey = CacheKeyEnum.CHECK_IN.genKeyDate(userId, today);
-            RBucket<Boolean> bucket = redissonClient.getBucket(checkInKey);
+            RBucket<Boolean> bucket = redissonClient.getBucket(CacheKeyEnum.CHECK_IN.genKeyDate(userId, today));
 
             if (Boolean.TRUE.equals(bucket.get())) {
                 throw new Exception(messageSource.getMessage(LocalKey.CHECK_IN_ALREADY, null, locale));
@@ -144,7 +142,7 @@ public class CheckInHistoryService {
                                                       int page,
                                                       int pageSize) {
 
-        Pageable pageable = PageRequest.of(page, pageSize);
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(pageSize, 1));
 
         Page<CheckInHistoryEntity> checkInHistoryEntities =
                 checkInHistoryRepository.findByUserIdAndType(userId, ScoreTypeEnum.ADD.getValue(), pageable);

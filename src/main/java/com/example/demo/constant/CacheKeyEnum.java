@@ -20,10 +20,10 @@ public enum CacheKeyEnum {
     }
 
     public String genKey(long id) {
-        return key + ":" + id;
+        return String.format("%s:%d", key, id);
     }
 
     public String genKeyDate(long id, LocalDate date) {
-        return key + ":" + id + ":" + date.toString();
+        return String.format("%s:%d:%s", key, id, date.toString());
     }
 }
