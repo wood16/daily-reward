@@ -28,7 +28,7 @@ public class CheckInHistoryController {
     public ResponseEntity<String> checkIn(@RequestHeader(value = "Accept-Language", defaultValue = "vi") String language,
                                           @RequestParam Long userId) {
 
-        Locale locale = new Locale(language);
+        Locale locale = Locale.forLanguageTag(language);
 
         try {
 

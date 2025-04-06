@@ -26,7 +26,7 @@ public class UserController {
     public ResponseEntity<?> postUser(@RequestHeader(value = "Accept-Language", defaultValue = "vi") String language,
                                       @RequestBody CreateUserRequest createUserRequest) {
 
-        Locale locale = new Locale(language);
+        Locale locale = Locale.forLanguageTag(language);
 
         return userService.createUser(createUserRequest, locale);
     }
@@ -35,7 +35,7 @@ public class UserController {
     public ResponseEntity<?> getUserProfile(@RequestHeader(value = "Accept-Language", defaultValue = "vi") String language,
                                             @PathVariable Long id) {
 
-        Locale locale = new Locale(language);
+        Locale locale = Locale.forLanguageTag(language);
 
         return userService.getUserById(id, locale);
     }
@@ -45,7 +45,7 @@ public class UserController {
                                            @RequestParam Long userId,
                                            @RequestParam int point) {
 
-        Locale locale = new Locale(language);
+        Locale locale = Locale.forLanguageTag(language);;
 
         try {
 
