@@ -10,9 +10,9 @@ spring:
   application:
     name: demo
   datasource:
-    url: jdbc:mysql://localhost:3309/interview
-    username: root
-    password: hoanglam1699
+    url: jdbc:mysql://localhost:3309/interview?allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
   jpa:
     database-platform: org.hibernate.dialect.MySQL8Dialect
     generate-ddl: true
