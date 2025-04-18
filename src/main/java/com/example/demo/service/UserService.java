@@ -31,6 +31,7 @@ public class UserService {
     UserMapper userMapper;
     RedissonClient redissonClient;
     MessageSource messageSource;
+    CacheService cacheService;
 
     @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<?> createUser(CreateUserRequest createUserRequest, Locale locale) {
@@ -65,17 +66,8 @@ public class UserService {
                     .body(messageSource.getMessage(LocalKey.USER_NOT_FOUND, null, locale));
         }
 
-        return ResponseEntity.ok(updateCache(bucket, userEntityOptional.get()));
+        return ResponseEntity.ok(cacheService.updateCacheUser(bucket, userEntityOptional.get()));
     }
 
-    public UserResponse updateCache(RBucket<UserResponse> bucket,
-                                    UserEntity user) {
 
-        UserResponse response = userMapper.toUserResponse(user);
-
-        bucket.set(response);
-        bucket.expire(Duration.ofHours(1));
-
-        return response;
-    }
 }

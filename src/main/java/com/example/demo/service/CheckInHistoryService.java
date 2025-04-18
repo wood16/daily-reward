@@ -31,12 +31,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -48,33 +44,27 @@ public class CheckInHistoryService {
     RedissonClient redissonClient;
     DailyRewardConfigService dailyRewardConfigService;
     CheckInHistoryMapper checkInHistoryMapper;
-    UserService userService;
     MessageSource messageSource;
+    CacheService cacheService;
 
-    public List<CheckInStatusResponse> getCheckInStatus(long userId,
-                                                        LocalDate startDate,
-                                                        LocalDate endDate) {
+    public List<CheckInStatusResponse> getCheckInStatus(long userId) {
 
-        long numOfDays = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        LocalDate today = LocalDate.now();
+        LocalDate firstDay = today.withDayOfMonth(1);
+        LocalDate lastDay = today.withDayOfMonth(today.lengthOfMonth());
 
-        Set<LocalDate> checkedDates = checkInHistoryRepository
-                .findByUserIdAndDateBetweenAndType(userId, startDate, endDate, ScoreTypeEnum.ADD.getValue())
-                .stream()
-                .map(CheckInHistoryEntity::getDate)
-                .collect(Collectors.toSet());
+        List<CheckInHistoryEntity> checkedDates = checkInHistoryRepository
+                .findByUserIdAndDateBetweenAndType(userId, firstDay, lastDay, ScoreTypeEnum.ADD.getValue());
 
         List<CheckInStatusResponse> result = new ArrayList<>();
+        int configSize = dailyRewardConfigService.findAllDailyRewardConfig().size();
 
-        Stream.iterate(startDate, date -> date.plusDays(1))
-                .limit(numOfDays)
-                .forEach(date -> {
-                    boolean checked = checkedDates.contains(date);
-
-                    result.add(CheckInStatusResponse.builder()
-                            .checkIn(checked)
-                            .date(date)
-                            .build());
-                });
+        for (int i = 1; i <= configSize; i++) {
+            result.add(CheckInStatusResponse.builder()
+                    .checkIn(i <= checkedDates.size())
+                    .index(i)
+                    .build());
+        }
 
         return result;
     }
@@ -135,10 +125,8 @@ public class CheckInHistoryService {
 
             user.setRewardPoints(user.getRewardPoints() + rewardPoints);
             userRepository.save(user);
-            userService.updateCache(redissonClient.getBucket(CacheKeyEnum.USER.genKey(userId)), user);
 
-            bucket.set(true);
-            bucket.expire(LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+            cacheService.updateCacheCheckInAfterCommit(userId, today, user);
 
             return messageSource.getMessage(LocalKey.CHECK_IN_SUCCESS, new Object[]{rewardPoints}, locale);
         } finally {
@@ -180,15 +168,24 @@ public class CheckInHistoryService {
         userRepository.save(user);
 
         RBucket<UserResponse> bucket = redissonClient.getBucket(CacheKeyEnum.USER.genKey(userId));
-        userService.updateCache(bucket, user);
+        cacheService.updateCacheUser(bucket, user);
 
         return messageSource.getMessage(LocalKey.SUBTRACT_POINT_SUCCESS, null, locale);
     }
 
     private boolean checkHaveCheckInDay(RBucket<Boolean> bucket, LocalDate date, Long userId) {
 
-        return Boolean.TRUE.equals(bucket.get()) ||
-                checkInHistoryRepository.findByUserIdAndDateAndType(userId, date, ScoreTypeEnum.ADD.getValue()).isPresent();
+        if (Boolean.TRUE.equals(bucket.get()) ||
+                checkInHistoryRepository.findByUserIdAndDateAndType(userId, date, ScoreTypeEnum.ADD.getValue()).isPresent()) {
+            if (!Boolean.TRUE.equals(bucket.get())) {
+
+                cacheService.updateCacheChecked(bucket, date);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     private boolean checkValidTime(LocalTime currentTime) {

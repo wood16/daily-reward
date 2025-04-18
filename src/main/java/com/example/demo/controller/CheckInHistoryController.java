@@ -43,11 +43,9 @@ public class CheckInHistoryController {
     }
 
     @GetMapping("/status")
-    public ResponseEntity<List<CheckInStatusResponse>> getCheckInStatus(@RequestParam Long userId,
-                                                                        @RequestParam LocalDate startDate,
-                                                                        @RequestParam LocalDate endDate) {
+    public ResponseEntity<List<CheckInStatusResponse>> getCheckInStatus(@RequestParam Long userId) {
 
-        return ResponseEntity.ok(checkInHistoryService.getCheckInStatus(userId, startDate, endDate));
+        return ResponseEntity.ok(checkInHistoryService.getCheckInStatus(userId));
     }
 
     @GetMapping("/histories")
